@@ -86,10 +86,12 @@ git checkout main && git checkout -b feat/your-feature
 
 4. **测试**。确保你的改动不会破坏现有功能：
    ```bash
+   bun test                  # 服务端/CLI 测试(需要 PATH 里有 ripgrep)
    cd desktop
-   bun run lint    # TypeScript 类型检查
-   bun run test    # 运行测试
+   bun run lint              # TypeScript 类型检查
+   bun run test -- --run     # 桌面端测试
    ```
+   每个提到 `main` 的 PR,CI 都会跑这三项检查。
 
 5. **提交 PR**。PR 目标分支为 `main`，描述清楚改了什么、为什么改。
 
@@ -117,10 +119,11 @@ dreamcoder/
 
 > ⚠️ **平台支持说明**
 >
-> DreamCoder 当前**主要在 Windows x64 上开发与验证**。
-> **macOS（Apple Silicon）** 已可从源码运行（`bun run tauri dev`），维护者在开发中使用，
-> 但打包后的 macOS 安装包尚未验证。代码里也有 Linux 的平台分支，但维护者日常不在 Linux 上跑。
-> 如果你在 Linux 上，或者要打包 macOS 应用：
+> 维护者目前**主要在 macOS（Apple Silicon）上开发**，从源码运行（`bun run tauri dev`），
+> 但打包后的 macOS 安装包尚未验证。**Windows x64** 是此前的主力平台，经过长期实测，
+> 但维护者现在不在 Windows 上日常开发，新改动的 Windows 验证尤其需要帮助。
+> 代码里也有 Linux 的平台分支，但维护者日常不在 Linux 上跑。
+> 如果你在 Windows 或 Linux 上，或者要打包 macOS 应用：
 >
 > - 桌面端**可能**能构建运行，但你可能撞到未验证过的问题
 >   （Linux 内存问题正在 [#25](https://github.com/GoDiao/dreamcoder/issues/25) 调查中）。

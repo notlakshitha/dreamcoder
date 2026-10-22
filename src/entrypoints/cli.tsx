@@ -37,7 +37,7 @@ async function main(): Promise<void> {
   if (args.length === 1 && (args[0] === '--version' || args[0] === '-v' || args[0] === '-V')) {
     // MACRO.VERSION is inlined at build time
     // biome-ignore lint/suspicious/noConsole:: intentional console output
-    console.log(`${MACRO.VERSION} (Claude Code)`);
+    console.log(`${MACRO.VERSION} (DreamCoder)`);
     return;
   }
 
@@ -82,13 +82,6 @@ async function main(): Promise<void> {
       runChromeNativeHost
     } = await import('../utils/claudeInChrome/chromeNativeHost.js');
     await runChromeNativeHost();
-    return;
-  } else if (process.argv[2] === '--computer-use-mcp') {
-    profileCheckpoint('cli_computer_use_mcp_path');
-    const {
-      runComputerUseMcpServer
-    } = await import('../utils/computerUse/mcpServer.js');
-    await runComputerUseMcpServer();
     return;
   }
 

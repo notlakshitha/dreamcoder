@@ -33,7 +33,6 @@ function makeSessionState(overrides: Partial<PerSessionState> = {}): PerSessionS
     activeToolName: null,
     activeThinkingId: null,
     pendingPermission: null,
-    pendingComputerUsePermission: null,
     tokenUsage: { input_tokens: 0, output_tokens: 0 },
     elapsedSeconds: 0,
     statusVerb: '',
@@ -185,6 +184,23 @@ describe('MessageList nested tool calls', () => {
       expect(item.className).not.toContain('contain-intrinsic-size')
     }
     expect(container.querySelector('[data-virtual-message-item]')).toBeNull()
+  })
+
+  it('keeps the message column a flex item so WebKit selection gaps stay inside it', () => {
+    useChatStore.setState({
+      sessions: {
+        [ACTIVE_TAB]: makeSessionState({
+          messages: [{ id: 'assistant-1', type: 'assistant_text', content: 'reply', timestamp: 1 }],
+        }),
+      },
+    })
+
+    const { container } = render(<MessageList />)
+    const column = container.querySelector('.chat-render-item')?.parentElement
+    expect(column?.className).toContain('shrink-0')
+    expect(column?.className).toContain('w-full')
+    expect(column?.parentElement?.className).toMatch(/\bflex\b/)
+    expect(column?.parentElement?.className).toContain('flex-col')
   })
 
   it('virtualizes short message lists when their content is very large', () => {

@@ -22,6 +22,7 @@ const originalClaudeCodeEntrypoint = process.env.CLAUDE_CODE_ENTRYPOINT
 const originalHome = process.env.HOME
 const originalShell = process.env.SHELL
 const originalZdotdir = process.env.ZDOTDIR
+const originalNvmDir = process.env.NVM_DIR
 const originalDisableTerminalShellEnv = process.env.DREAMCODER_DISABLE_TERMINAL_SHELL_ENV
 
 const isWindows = process.platform === 'win32'
@@ -101,6 +102,11 @@ function restoreEnv(): void {
   } else {
     delete process.env.ZDOTDIR
   }
+  if (originalNvmDir) {
+    process.env.NVM_DIR = originalNvmDir
+  } else {
+    delete process.env.NVM_DIR
+  }
   if (originalDisableTerminalShellEnv) {
     process.env.DREAMCODER_DISABLE_TERMINAL_SHELL_ENV = originalDisableTerminalShellEnv
   } else {
@@ -132,6 +138,8 @@ describe('cron scheduler launcher resolution', () => {
   let tmpDir: string
 
   beforeEach(async () => {
+    // Server tests that run earlier may leave another port set on this static.
+    ProviderService.setServerPort(3456)
     tmpDir = await createTmpDir()
     process.env.DREAMCODER_CONFIG_DIR = path.join(tmpDir, 'config')
     process.env.DREAMCODER_DISABLE_TERMINAL_SHELL_ENV = '1'
@@ -430,6 +438,7 @@ describe('cron scheduler launcher resolution', () => {
     process.env.SHELL = shellPath
     process.env.PATH = '/usr/bin:/bin'
     delete process.env.ZDOTDIR
+    delete process.env.NVM_DIR
     process.env.CLAUDE_CLI_PATH = sidecarPath
     process.env.CLAUDE_APP_ROOT = appRoot
     resetTerminalShellEnvironmentCacheForTests()

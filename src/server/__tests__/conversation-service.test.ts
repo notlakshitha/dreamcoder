@@ -22,9 +22,12 @@ describe('ConversationService', () => {
   let originalPath: string | undefined
   let originalShell: string | undefined
   let originalZdotdir: string | undefined
+  let originalNvmDir: string | undefined
   let originalDisableTerminalShellEnv: string | undefined
 
   beforeEach(async () => {
+    // Server tests that run earlier may leave another port set on this static.
+    ProviderService.setServerPort(3456)
     tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'dreamcoder-conversation-service-'))
     originalConfigDir = process.env.DREAMCODER_CONFIG_DIR
     originalApiKey = process.env.ANTHROPIC_API_KEY
@@ -40,6 +43,7 @@ describe('ConversationService', () => {
     originalPath = process.env.PATH
     originalShell = process.env.SHELL
     originalZdotdir = process.env.ZDOTDIR
+    originalNvmDir = process.env.NVM_DIR
     originalDisableTerminalShellEnv = process.env.DREAMCODER_DISABLE_TERMINAL_SHELL_ENV
 
     process.env.DREAMCODER_CONFIG_DIR = tmpDir
@@ -98,6 +102,9 @@ describe('ConversationService', () => {
 
     if (originalZdotdir === undefined) delete process.env.ZDOTDIR
     else process.env.ZDOTDIR = originalZdotdir
+
+    if (originalNvmDir === undefined) delete process.env.NVM_DIR
+    else process.env.NVM_DIR = originalNvmDir
 
     if (originalDisableTerminalShellEnv === undefined) delete process.env.DREAMCODER_DISABLE_TERMINAL_SHELL_ENV
     else process.env.DREAMCODER_DISABLE_TERMINAL_SHELL_ENV = originalDisableTerminalShellEnv
@@ -180,6 +187,7 @@ describe('ConversationService', () => {
     process.env.SHELL = shellPath
     process.env.PATH = '/usr/bin:/bin'
     delete process.env.ZDOTDIR
+    delete process.env.NVM_DIR
     resetTerminalShellEnvironmentCacheForTests()
 
     const service = new ConversationService() as any
@@ -228,6 +236,29 @@ describe('ConversationService', () => {
     expect(env.API_TIMEOUT_MS).toBe('180000')
     expect(env.HTTP_PROXY).toBe('http://127.0.0.1:7890')
     expect(env.HTTPS_PROXY).toBe('http://127.0.0.1:7890')
+  })
+
+  test('buildChildEnv turns on agent teams only when the desktop setting is on', async () => {
+    const previous = process.env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS
+    process.env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = '1'
+    try {
+      const service = new ConversationService() as any
+
+      await fs.writeFile(path.join(tmpDir, 'settings.json'), JSON.stringify({}), 'utf-8')
+      let env = (await service.buildChildEnv('/tmp')) as Record<string, string>
+      expect(env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS).toBeUndefined()
+
+      await fs.writeFile(path.join(tmpDir, 'settings.json'), JSON.stringify({ agentTeamsEnabled: true }), 'utf-8')
+      env = (await service.buildChildEnv('/tmp')) as Record<string, string>
+      expect(env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS).toBe('1')
+
+      await fs.writeFile(path.join(tmpDir, 'settings.json'), JSON.stringify({ agentTeamsEnabled: false }), 'utf-8')
+      env = (await service.buildChildEnv('/tmp')) as Record<string, string>
+      expect(env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS).toBeUndefined()
+    } finally {
+      if (previous === undefined) delete process.env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS
+      else process.env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = previous
+    }
   })
 
   test('buildChildEnv injects explicit provider runtime env for session-scoped providers', async () => {
@@ -336,16 +367,14 @@ describe('ConversationService', () => {
     expect(env.CLAUDE_CODE_OAUTH_TOKEN).toBeUndefined()
   })
 
-  test('buildChildEnv injects desktop Computer Use host bundle id for sdk sessions', async () => {
+  test('buildChildEnv injects the desktop server URL for sdk sessions', async () => {
     const service = new ConversationService() as any
     const env = (await service.buildChildEnv(
       '/tmp',
       'ws://127.0.0.1:3456/sdk/test-session?token=test-token',
     )) as Record<string, string>
 
-    expect(env.DREAMCODER_COMPUTER_USE_HOST_BUNDLE_ID).toBe(
-      'com.dreamcoder.desktop',
-    )
+    expect(env.DREAMCODER_COMPUTER_USE_HOST_BUNDLE_ID).toBeUndefined()
     expect(env.DREAMCODER_DESKTOP_SERVER_URL).toBe('http://127.0.0.1:3456')
     expect(env.CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING).toBe('1')
   })
